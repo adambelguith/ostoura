@@ -38,7 +38,7 @@ const productSchema = new mongoose.Schema(
       required: true
     },
     image: [{ type: String, required: true }],
-    video:{type: String, required: true},
+    video:{type: String, required: false},
     price: { type: Number, required: true },
     brand: { type: String, required: true },
     rating: { type: Number, required: true, default: 0 },

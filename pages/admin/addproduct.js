@@ -133,75 +133,78 @@ images.map(async (image,i) => {
       toast.error(getError(err));
     }
   };
-
-
-// const categoryies = async (product) => {
-//           await db.connect();
-//           const productCategory = await Category.findById(product.category);
-//           const productSubcategory = await Subcategory.findById(product.subcategory);
-//           setCategory(productCategory);
-//           setSubcategory(productSubcategory);
-//           await db.disconnect();
-//         };
         
 
-const onSelectFile = async (event) =>  {
+// const onSelectFile = async (event) =>  {
 
-event.preventDefault();
-const imageData = await uploadHandler(event.target.files);
-const imageUrl = imageData.map((data)=>data.url);
-setValue('image',imageUrl);
+// event.preventDefault();
+// const imageData = await uploadHandler(event.target.files);
+// const imageUrl = imageData.map((data)=>data.url);
+// setValue('image',imageUrl);
 
-//   const selectedFiles = event.target.files;
-//   const selectedFilesArray = Array.from(selectedFiles);
+// };
+// {
+//   name,
+//   slug,
+//   price,
+//   category,
+//   subcategory,
+//   image,
+//   video,
+//   brand,
+//   countInStock,
+//   description,
+// }
 
-//   const imagesArray = await selectedFilesArray.map(async(file) => {
-//     const aempty=[];
-//    const url = await uploadHandler(file);
-//     // console.log(url.secure_url)
-//    const surl =url.secure_url;
-//    console.log(surl);
-//     const arraylist = aempty.map(()=> {
-// return surl;
-//     });
-//    console.log(arraylist)
-//     return Promise.resolve(url);
-//   });
- 
-  
-//   setSelectedImages((previousImages) => previousImages.concat(imagesArray));
- 
-  // FOR BUG IN CHROME
+
+const [videoBase64, setVideoBase64] = useState('');
+
+  const handleFileChange = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64String = reader.result.split(',')[1]; // Extract the base64 string
+        setVideoBase64(base64String);
+      };
+      reader.readAsDataURL(file); // Read the selected file as a data URL (base64)
+    }
+  };
+
+const [imageFiles, setImageFiles] = useState([]);
+const [displayImage , setDisplayImage] = useState(false)
+const handleDeleteImage = (index) => {
+  const updatedList = [...imageFiles];
+  updatedList.splice(index, 1); 
+  setImageFiles(updatedList);
 };
-  const submitHandler = async ({
-    name,
-    slug,
-    price,
-    category,
-    subcategory,
-    image,
-    video,
-    brand,
-    countInStock,
-    description,
-  }) => {
+
+const handleImageChange = async (e) => {
+  const files = Array.from(e.target.files);
+  const imagePromises = files.map((file) => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        resolve(event.target.result);
+      };
+      reader.readAsDataURL(file);
+    });
+  });
+  const base64Images = await Promise.all(imagePromises);
+  setImageFiles(base64Images);
+  setDisplayImage(true)
+};
+
+  const submitHandler = async (data) => {
+    const formData = {
+      ...data,
+      image: imageFiles,
+      video: videoBase64,
+    };
+      console.log(formData)
     try {
-  //  const imageUrl = await Promise.all(image.map(uploadHandler));
-      const data = {
-        name,
-        slug,
-        price,
-        category,
-        subcategory,
-        image,
-        video,
-        brand,
-        countInStock,
-        description,
-      }
-      console.log(video)
       dispatch({ type: 'UPDATE_REQUEST' });
-      await axios.post(`/api/admin/products`, data);
+      await axios.post(`/api/admin/products`, formData);
       dispatch({ type: 'UPDATE_SUCCESS' });
       toast.success('Product updated successfully');
       router.push('/admin/products');
@@ -282,7 +285,8 @@ setValue('image',imageUrl);
                   <div className="text-red-500">{errors.price.message}</div>
                 )}
               </div>
-              <div className="mb-4">
+             
+              {/* <div className="mb-4">
                 <label htmlFor="image">image</label>
                 <input
                   type="text"
@@ -296,7 +300,7 @@ setValue('image',imageUrl);
                 {errors.image && (
                   <div className="text-red-500">{errors.image.message}</div>
                 )}
-              </div>
+              </div> */}
               <div className="mb-4">
                 <label htmlFor="imageFile">Upload image</label>
                 <input
@@ -304,13 +308,20 @@ setValue('image',imageUrl);
                   className="w-full"
                   id="imageFile"
                   multiple 
-                  onChange={onSelectFile}
+                  onChange={handleImageChange}
                 />
-
-                
+                {displayImage && 
+                <div className='flex flex-wrap space-x-4 mt-6'>
+                {imageFiles.map((imageData, index) => (
+                  <div key={index} >
+                     <span className='cross-stand-alone ' onClick={() => handleDeleteImage(index)}></span>
+                      <img className='m-4 rounded-md' src={imageData} alt={`Image ${index}`} height={128}  width={128}/>
+                  </div>
+                ))}
+                </div>}
               </div>
 
-              <div className="mb-4">
+              {/* <div className="mb-4">
                 <label htmlFor="video">video</label>
                 <input
                   type="text"
@@ -323,17 +334,22 @@ setValue('image',imageUrl);
                 {errors.video && (
                   <div className="text-red-500">{errors.video.message}</div>
                 )}
-              </div>
+              </div> */}
               <div className="mb-4">
                 <label htmlFor="videoFile">Upload Video</label>
                 <input
                   type="file"
                   className="w-full"
                   id="videoFile"
-                  onChange={videoHandler}
+                  onChange={handleFileChange}
                 />
-
-                {loadingUpload && <div>Uploading.... {uploaded/10}%</div>}
+                {videoBase64 && (
+                    <div>
+                      <video controls width="300">
+                        <source src={`data:video/mp4;base64,${videoBase64}`} type="video/mp4" />
+                      </video>
+                    </div>
+                  )}
               </div>
 
 
