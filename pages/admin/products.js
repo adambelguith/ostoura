@@ -139,6 +139,7 @@ export default function AdminProdcutsScreen() {
               <table className="min-w-full">
                 <thead className="border-b">
                   <tr>
+                    <th className="px-5 text-left">Image</th>
                     <th className="px-5 text-left">ID</th>
                     <th className="p-5 text-left">NAME</th>
                     <th className="p-5 text-left">PRICE</th>
@@ -151,6 +152,7 @@ export default function AdminProdcutsScreen() {
                 <tbody>
                   {products.map((product) => (
                     <tr key={product._id} className="border-b">
+                      <td className=' p-5'><img className='m-4 rounded-md' src={product.image[0]} height={128}  width={128}/></td>
                       <td className=" p-5 ">{product._id.substring(20, 24)}</td>
                       <td className=" p-5 ">{product.name}</td>
                       <td className=" p-5 ">${product.price}</td>

@@ -2,6 +2,13 @@ import { getSession } from 'next-auth/react';
 import {Product, Category, Subcategory} from '../../../../../models/Product';
 import db from '../../../../../utils/db';
 import mongoose from "mongoose";
+export const config = {
+  api: {
+    bodyParser: {
+      sizeLimit: '4mb' // Set desired value here
+    }
+  }
+};
 
 const handler = async (req, res) => {
   const session = await getSession({ req });

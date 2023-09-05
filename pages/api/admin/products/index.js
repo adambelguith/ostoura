@@ -1,7 +1,13 @@
 import { getSession } from 'next-auth/react';
 import {Product, Category,Subcategory} from '../../../../models/Product';
 import db from '../../../../utils/db';
-
+export const config = {
+  api: {
+    bodyParser: {
+      sizeLimit: '4mb' // Set desired value here
+    }
+  }
+};
 const handler = async (req, res) => {
   const session = await getSession({ req });
   if (!session || !session.user.isAdmin) {
@@ -39,9 +45,6 @@ const postHandler = async (req, res) => {
   newSubcategory = newproductSubcategory;
   }
  
-  
-
-
   const newProduct = new Product({
     name: req.body.name,
     slug: req.body.slug + Math.random(),
@@ -68,3 +71,4 @@ const getHandler = async (req, res) => {
   res.send(products);
 };
 export default handler;
+

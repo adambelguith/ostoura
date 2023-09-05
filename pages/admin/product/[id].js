@@ -45,8 +45,11 @@ export default function AdminProductEditScreen() {
   const { query } = useRouter();
   const productId = query.id;
 
+  
+const [videoBase64, setVideoBase64] = useState('');
   const [uploaded, setUploaded] =useState(null);
-
+  const [displayImage, setDisplayImage] = useState([])
+  const [condImage, setCondImage] = useState(false)
   const [{ loading, error, loadingUpdate, loadingUpload }, dispatch] =
     useReducer(reducer, {
       loading: true,
@@ -59,8 +62,7 @@ export default function AdminProductEditScreen() {
     formState: { errors },
     setValue,
   } = useForm();
-  const [category, setCategory] = useState(null);
-  const [subcategory, setSubcategory] = useState(null);
+
   useEffect(() => {
     const fetchData = async () => {
       const { data } = await axios.get(`/api/admin/products/${productId}`);
@@ -89,7 +91,15 @@ export default function AdminProductEditScreen() {
         setValue('brand', data.brand);
         setValue('countInStock', data.countInStock);
         setValue('description', data.description);
-        console.log(data)
+        
+        if(data.image != null){
+          setCondImage(true)
+          setDisplayImage(data.image)
+        }
+        if(data.video != null){
+          setVideoBase64(data.video)
+        }
+    
         
       } catch (err) {
         dispatch({ type: 'FETCH_FAIL', payload: getError(err) });
@@ -159,79 +169,76 @@ images.map(async (image,i) => {
   };
 
 
-// const categoryies = async (product) => {
-//           await db.connect();
-//           const productCategory = await Category.findById(product.category);
-//           const productSubcategory = await Subcategory.findById(product.subcategory);
-//           setCategory(productCategory);
-//           setSubcategory(productSubcategory);
-//           await db.disconnect();
-//         };
-        
-
 const onSelectFile = async (event) =>  {
 
 event.preventDefault();
 const imageData = await uploadHandler(event.target.files);
 const imageUrl = imageData.map((data)=>data.url);
 setValue('image',imageUrl);
-
-//   const selectedFiles = event.target.files;
-//   const selectedFilesArray = Array.from(selectedFiles);
-
-//   const imagesArray = await selectedFilesArray.map(async(file) => {
-//     const aempty=[];
-//    const url = await uploadHandler(file);
-//     // console.log(url.secure_url)
-//    const surl =url.secure_url;
-//    console.log(surl);
-//     const arraylist = aempty.map(()=> {
-// return surl;
-//     });
-//    console.log(arraylist)
-//     return Promise.resolve(url);
-//   });
- 
-  
-//   setSelectedImages((previousImages) => previousImages.concat(imagesArray));
- 
   // FOR BUG IN CHROME
 };
-  const submitHandler = async ({
-    name,
-    slug,
-    price,
-    category,
-    subcategory,
-    image,
-    video,
-    brand,
-    countInStock,
-    description,
-  }) => {
+
+
+
+  const handleFileChange = (event) => {
+    setVideoBase64('')
+    const file = event.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64String = reader.result.split(',')[1]; // Extract the base64 string
+        setVideoBase64(base64String);
+      };
+      reader.readAsDataURL(file); // Read the selected file as a data URL (base64)
+    }
+  };
+
+
+
+const handleDeleteImage = (index) => {
+  const updatedList = [...displayImage];
+  updatedList.splice(index, 1); // Remove the image at the specified index
+  setDisplayImage(updatedList); // Update the state
+};
+const handleImageChange = async (e) => {
+  const files = Array.from(e.target.files);
+  const imagePromises = files.map((file) => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        resolve(event.target.result);
+      };
+      reader.readAsDataURL(file);
+    });
+  });
+  const base64Images = await Promise.all(imagePromises);
+  console.log("display", displayImage)
+  setDisplayImage(prevItems => {
+    if (Array.isArray(prevItems)) {
+      return [...prevItems, ...base64Images];
+    } else {
+      return [...additionalItems]; // Initialize as an array if it's not
+    }
+  });
+  setCondImage(true)
+};
+
+
+  const submitHandler = async (data) => {
+    const formData = {
+      ...data,
+      image: displayImage,
+    };
     try {
-  //  const imageUrl = await Promise.all(image.map(uploadHandler));
-      const data = {
-        name,
-        slug,
-        price,
-        category,
-        subcategory,
-        image,
-        video,
-        brand,
-        countInStock,
-        description,
-      }
-      console.log(video)
       dispatch({ type: 'UPDATE_REQUEST' });
-      await axios.put(`/api/admin/products/${productId}`, data);
+      await axios.put(`/api/admin/products/${productId}`, formData);
       dispatch({ type: 'UPDATE_SUCCESS' });
       toast.success('Product updated successfully');
       router.push('/admin/products');
     } catch (err) {
       dispatch({ type: 'UPDATE_FAIL', payload: getError(err) });
       toast.error(getError(err));
+      console.log("errrorrr ", err)
     }
   };
 
@@ -310,21 +317,7 @@ setValue('image',imageUrl);
                   <div className="text-red-500">{errors.price.message}</div>
                 )}
               </div>
-              <div className="mb-4">
-                <label htmlFor="image">image</label>
-                <input
-                  type="text"
-                  className="w-full"
-                  id="image" 
-                  {...register('image', {
-                    required: 'Please enter image',
-                  })}
-                  
-                />
-                {errors.image && (
-                  <div className="text-red-500">{errors.image.message}</div>
-                )}
-              </div>
+              
               <div className="mb-4">
                 <label htmlFor="imageFile">Upload image</label>
                 <input
@@ -332,13 +325,21 @@ setValue('image',imageUrl);
                   className="w-full"
                   id="imageFile"
                   multiple 
-                  onChange={onSelectFile}
+                  onChange={handleImageChange}
                 />
-
-                {loadingUpload && <div>Uploading.... </div>}
               </div>
+              {condImage && 
+                <div className='flex flex-wrap space-x-4'>
+                {displayImage.map((imageData, index) => (
+                   <div key={index} className='m-4 ' >
+                  <span className='cross-stand-alone ' onClick={() => handleDeleteImage(index)}></span>
+                      <img className='rounded-md' src={imageData} alt={`Image ${index}`} height={128}  width={128}/>
+                      
+                  </div>
+                ))}
+                </div>}
 
-              <div className="mb-4">
+              {/* <div className="mb-4">
                 <label htmlFor="video">video</label>
                 <input
                   type="text"
@@ -351,7 +352,7 @@ setValue('image',imageUrl);
                 {errors.video && (
                   <div className="text-red-500">{errors.video.message}</div>
                 )}
-              </div>
+              </div> */}
               <div className="mb-4">
                 <label htmlFor="videoFile">Upload Video</label>
                 <input
@@ -359,14 +360,16 @@ setValue('image',imageUrl);
                   className="w-full"
                   id="videoFile"
                   multiple 
-                  onChange={videoHandler}
+                  onChange={handleFileChange}
                 />
-
-                {loadingUpload && <div>Uploading.... {uploaded}</div>}
+                {videoBase64 && (
+                    <div>
+                      <video controls width="300">
+                        <source src={`data:video/mp4;base64,${videoBase64}`} type="video/mp4" />
+                      </video>
+                    </div>
+                  )}
               </div>
-
-
-
 
               <div className="mb-4">
                 <label htmlFor="category">category</label>
